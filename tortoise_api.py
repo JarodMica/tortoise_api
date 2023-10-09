@@ -6,6 +6,7 @@ import os
 import sounddevice as sd
 import soundfile as sf
 import yaml
+import re
 
 class Tortoise_API:
     '''
@@ -89,11 +90,12 @@ class Tortoise_API:
             
             print(f"Attempt {attempt + 1} failed, retrying...")  # Log the retry attempt
             import time
-            time.sleep(1)  # Optional: add a delay between retries
+            # time.sleep(1)  # Optional: add a delay between retries
         
         print(f"Failed to connect after {max_retries} attempts")
         return None
 
+            
 
     def play_audio_from_queue(self):
         while True:
@@ -134,36 +136,53 @@ def load_config():
 
     return tort_conf
 
-def filter_paragraph(paragraph, sentence_len = 130):
-    '''
-    Filters a large body of text into a list of strings to reduce the load
-    sent over to the API.  Is needed to make the API calls faster and used for Tortoise
+import re
 
-    Args:
-        paragraph (str) : Any body of text
-        sentence_len (int) : minimum length of sentence
-
-    Returns:
-        filtered_list (tuple) :  A list of sentences 
-
-    '''
-    paragraph = paragraph.replace('\n', ' ')  # Replace new lines with spaces
-    sentences = paragraph.split('. ')
+def filter_paragraph(paragraph):
+    lines = paragraph.strip().split('\n')
+    
     filtered_list = []
-    current_sentence = ""
+    i = 0
+    while i < len(lines):
+        split_sentences = lines[i].split('. ')
+        for part_sentence in split_sentences:
+            if not part_sentence:
+                continue
 
-    for sentence in sentences:
-        if len(current_sentence + sentence) <= sentence_len:
-            current_sentence += sentence + '. '
-        else:
-            if current_sentence.strip():  # Check if the current sentence is not just spaces
-                filtered_list.append(current_sentence.strip())
-            current_sentence = sentence + '. '
+            line = part_sentence.strip()
 
-    if current_sentence.strip():  # Check if the current sentence is not just spaces
-        filtered_list.append(current_sentence.strip())
+            while line.endswith(",") and (i + 1) < len(lines):
+                i += 1
+                line += " " + lines[i].split('. ')[0].strip()
+
+            # Remove square brackets and strip the line again
+            line = re.sub(r'\[|\]', '', line).strip()
+
+            # Only append lines that contain at least one alphabetic character
+            if line and any(c.isalpha() for c in line):
+                filtered_list.append(line)
+
+        i += 1
 
     return filtered_list
+
+
+def load_sentences(file_path) -> list:
+    '''
+    Utility function for toroise to load sentences from a text file path
+
+    Args:
+        file_path(str) : path to some text file
+
+    '''
+    with open(file_path, 'r', encoding='utf-8') as file:
+        content = file.read()
+        paragraphs = content.split('\n\n')  # Split content into paragraphs
+        filtered_sentences = []
+        for paragraph in paragraphs:
+            filtered_list = filter_paragraph(paragraph)
+            filtered_sentences.extend(filtered_list)
+    return filtered_sentences
 
 def read_paragraph_from_file(file_path):
     with open(file_path, 'r') as file:
