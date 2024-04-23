@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tortoise-api"
+version = "1.0"
+dependencies = [
+  "requests",
+  "sounddevice",
+  "soundfile",
+  "pyyaml",
+  "gradio==4.27"
+]
+requires-python = ">=3.8"
+authors = [
+  {name = "Jarod Mica"}
+]
+maintainers = [
+  {name = "Jarod Mica"}
+]
+description = "API for calling tortoise from ai-voice-cloning repo"
+readme = "README.md"
+license = {file = "LICENSE"}
+
+[project.urls]
+Homepage = "https://github.com/JarodMica/tortoise_api"
+Repository = "https://github.com/JarodMica/tortoise_api.git"
