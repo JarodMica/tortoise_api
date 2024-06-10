@@ -23,36 +23,43 @@ def call_api(sentence, line_delimiter="\n", emotion="None", custom_emotion="", v
     Returns:
         audio_path (str) : Path of the audio to be played
     '''
-    url = "http://localhost:7860/"
-    client = Client(url)
-    result = client.predict(
-        sentence,  # str in 'Input Prompt' Textbox component
-        line_delimiter,  # str in 'Line Delimiter' Textbox component
-        emotion,  # Literal['Happy', 'Sad', 'Angry', 'Disgusted', 'Arrogant', 'Custom', 'None'] in 'Emotion' Radio component
-        custom_emotion,  # str in 'Custom Emotion' Textbox component
-        voice,  # Literal['el', 'emi', 'emilia2', 'english_test', 'jp_test', 'me', 'mel', 'multilingual_dataset', 'penguinz0', 'penguinz0_2', 'spanish', 'subaru', 'test', 'test_run', 'vi', 'random', 'microphone'] in 'Voice' Dropdown component
-        microphone_source,  # filepath in 'Microphone Source' Audio component
-        voice_chunks,  # float in 'Voice Chunks' Number component
-        candidates,  # float (numeric value between 1 and 6) in 'Candidates' Slider component
-        seed,  # float in 'Seed' Number component
-        samples,  # float (numeric value between 1 and 512) in 'Samples' Slider component
-        iterations,  # float (numeric value between 0 and 512) in 'Iterations' Slider component
-        temperature,  # float (numeric value between 0 and 1) in 'Temperature' Slider component
-        diffusion_samplers,  # Literal['P', 'DDIM'] in 'Diffusion Samplers' Radio component
-        pause_size,  # float (numeric value between 1 and 32) in 'Pause Size' Slider component
-        cvvp_weight,  # float (numeric value between 0 and 1) in 'CVVP Weight' Slider component
-        top_p,  # float (numeric value between 0 and 1) in 'Top P' Slider component
-        diffusion_temperature,  # float (numeric value between 0 and 1) in 'Diffusion Temperature' Slider component
-        length_penalty,  # float (numeric value between 0 and 8) in 'Length Penalty' Slider component
-        repetition_penalty,  # float (numeric value between 0 and 8) in 'Repetition Penalty' Slider component
-        conditioning_free_k,  # float (numeric value between 0 and 4) in 'Conditioning-Free K' Slider component
-        experimental_flags,  # List[Literal['Half Precision', 'Conditioning-Free']] in 'Experimental Flags' Checkboxgroup component
-        use_original_latents_ar,  # bool in 'Use Original Latents Method (AR)' Checkbox component
-        use_original_latents_diffusion,  # bool in 'Use Original Latents Method (Diffusion)' Checkbox component
-        api_name="/generate"
-    )
+    start_port = 7860
+    url = f"http://localhost:{start_port}/"
+    tries = 0
+    while tries < 3:
+        try:
+            client = Client(url)
+            result = client.predict(
+                sentence,  # str in 'Input Prompt' Textbox component
+                line_delimiter,  # str in 'Line Delimiter' Textbox component
+                emotion,  # Literal['Happy', 'Sad', 'Angry', 'Disgusted', 'Arrogant', 'Custom', 'None'] in 'Emotion' Radio component
+                custom_emotion,  # str in 'Custom Emotion' Textbox component
+                voice,  # Literal['el', 'emi', 'emilia2', 'english_test', 'jp_test', 'me', 'mel', 'multilingual_dataset', 'penguinz0', 'penguinz0_2', 'spanish', 'subaru', 'test', 'test_run', 'vi', 'random', 'microphone'] in 'Voice' Dropdown component
+                microphone_source,  # filepath in 'Microphone Source' Audio component
+                voice_chunks,  # float in 'Voice Chunks' Number component
+                candidates,  # float (numeric value between 1 and 6) in 'Candidates' Slider component
+                seed,  # float in 'Seed' Number component
+                samples,  # float (numeric value between 1 and 512) in 'Samples' Slider component
+                iterations,  # float (numeric value between 0 and 512) in 'Iterations' Slider component
+                temperature,  # float (numeric value between 0 and 1) in 'Temperature' Slider component
+                diffusion_samplers,  # Literal['P', 'DDIM'] in 'Diffusion Samplers' Radio component
+                pause_size,  # float (numeric value between 1 and 32) in 'Pause Size' Slider component
+                cvvp_weight,  # float (numeric value between 0 and 1) in 'CVVP Weight' Slider component
+                top_p,  # float (numeric value between 0 and 1) in 'Top P' Slider component
+                diffusion_temperature,  # float (numeric value between 0 and 1) in 'Diffusion Temperature' Slider component
+                length_penalty,  # float (numeric value between 0 and 8) in 'Length Penalty' Slider component
+                repetition_penalty,  # float (numeric value between 0 and 8) in 'Repetition Penalty' Slider component
+                conditioning_free_k,  # float (numeric value between 0 and 4) in 'Conditioning-Free K' Slider component
+                experimental_flags,  # List[Literal['Half Precision', 'Conditioning-Free']] in 'Experimental Flags' Checkboxgroup component
+                use_original_latents_ar,  # bool in 'Use Original Latents Method (AR)' Checkbox component
+                use_original_latents_diffusion,  # bool in 'Use Original Latents Method (Diffusion)' Checkbox component
+                api_name="/generate"
+            )
 
-    return result[0]
+            return result[0]
+        except:
+            start_port += 1
+            tries += 1
 
 def load_config(tort_yaml_path):
     current_dir = os.path.dirname(os.path.abspath(__file__))
