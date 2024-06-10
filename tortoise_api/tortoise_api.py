@@ -61,9 +61,8 @@ def call_api(sentence, **kwargs):
 
 def load_config(tort_yaml_path):
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    yaml_file = os.path.join(current_dir, "tort.yaml")
 
-    with open(yaml_file, "r") as file:
+    with open(tort_yaml_path, "r") as file:
         tort_conf = yaml.safe_load(file)
 
     return tort_conf
