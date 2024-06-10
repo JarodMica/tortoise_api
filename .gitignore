@@ -1,1 +1,3 @@
 venv/
+build/
+tortoise_api.egg-info/

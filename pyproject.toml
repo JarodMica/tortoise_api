@@ -10,7 +10,8 @@ dependencies = [
   "sounddevice",
   "soundfile",
   "pyyaml",
-  "gradio==4.27"
+  "gradio==4.27",
+  "gradio_client"
 ]
 requires-python = ">=3.8"
 authors = [

@@ -7,127 +7,54 @@ import sounddevice as sd
 import soundfile as sf
 import yaml
 import re
+from gradio_client import Client, file
 
-class Tortoise_API:
+def call_api(sentence, line_delimiter="\n", emotion="None", custom_emotion="", voice="mel", microphone_source=None, 
+             voice_chunks=0, candidates=1, seed=0, samples=1, iterations=32, temperature=0.8, diffusion_samplers="P", 
+             pause_size=8, cvvp_weight=0, top_p=0.8, diffusion_temperature=1, length_penalty=6, repetition_penalty=6, 
+             conditioning_free_k=2, experimental_flags=["Half Precision", "Conditioning-Free"], 
+             use_original_latents_ar=True, use_original_latents_diffusion=True):
     '''
-    API calls to the tortoise GUI using requests.  Must have an open instance of
-    tortoise TTS GUI running or else nothing will happen. For most cases, to use this
-    you need to use filter_paragraph() to splice text into a list of sentences, then
-    feed that list 1-by-1 into call_api.  The idea is to speed up the process so that you can
-    generate audio while audio is being spoken
+    Makes a request to the Tortoise TTS GUI.  Relies on tort.yaml, so make sure it's set-up
+
+    Args:
+        Various arguments for TTS conversion
+    
+    Returns:
+        audio_path (str) : Path of the audio to be played
     '''
-    def __init__(self):
-        # Actually only necessary if you're using run(), could clean up code later
-        self.audio_queue = Queue()
-        self.free_slots = Queue()
-        self.semaphore = threading.Semaphore(1)
+    url = "http://localhost:7860/"
+    client = Client(url)
+    result = client.predict(
+        sentence,  # str in 'Input Prompt' Textbox component
+        line_delimiter,  # str in 'Line Delimiter' Textbox component
+        emotion,  # Literal['Happy', 'Sad', 'Angry', 'Disgusted', 'Arrogant', 'Custom', 'None'] in 'Emotion' Radio component
+        custom_emotion,  # str in 'Custom Emotion' Textbox component
+        voice,  # Literal['el', 'emi', 'emilia2', 'english_test', 'jp_test', 'me', 'mel', 'multilingual_dataset', 'penguinz0', 'penguinz0_2', 'spanish', 'subaru', 'test', 'test_run', 'vi', 'random', 'microphone'] in 'Voice' Dropdown component
+        microphone_source,  # filepath in 'Microphone Source' Audio component
+        voice_chunks,  # float in 'Voice Chunks' Number component
+        candidates,  # float (numeric value between 1 and 6) in 'Candidates' Slider component
+        seed,  # float in 'Seed' Number component
+        samples,  # float (numeric value between 1 and 512) in 'Samples' Slider component
+        iterations,  # float (numeric value between 0 and 512) in 'Iterations' Slider component
+        temperature,  # float (numeric value between 0 and 1) in 'Temperature' Slider component
+        diffusion_samplers,  # Literal['P', 'DDIM'] in 'Diffusion Samplers' Radio component
+        pause_size,  # float (numeric value between 1 and 32) in 'Pause Size' Slider component
+        cvvp_weight,  # float (numeric value between 0 and 1) in 'CVVP Weight' Slider component
+        top_p,  # float (numeric value between 0 and 1) in 'Top P' Slider component
+        diffusion_temperature,  # float (numeric value between 0 and 1) in 'Diffusion Temperature' Slider component
+        length_penalty,  # float (numeric value between 0 and 8) in 'Length Penalty' Slider component
+        repetition_penalty,  # float (numeric value between 0 and 8) in 'Repetition Penalty' Slider component
+        conditioning_free_k,  # float (numeric value between 0 and 4) in 'Conditioning-Free K' Slider component
+        experimental_flags,  # List[Literal['Half Precision', 'Conditioning-Free']] in 'Experimental Flags' Checkboxgroup component
+        use_original_latents_ar,  # bool in 'Use Original Latents Method (AR)' Checkbox component
+        use_original_latents_diffusion,  # bool in 'Use Original Latents Method (Diffusion)' Checkbox component
+        api_name="/generate"
+    )
 
-    def call_api(self, sentence, is_queue=False):
-        '''
-        Makes a request to the Tortoise TTS GUI.  Relies on tort.yaml, so make sure it's set-up
+    return result[0]
 
-        Args:
-            sentence (str) : Text to be converted to speech
-            is_queue (bool) : Only set to True if using as standalone script.  Uses built in queue
-                            system to queue up 6 samples of audio to be read out loud.
-        
-        Returns:
-            audio_path (str) : Path of the audio to be played
-        '''
-        tort_conf = load_config()
-        max_retries = 5
-        
-        for attempt in range(max_retries):
-            for port in range(7860, 7866):
-                try:
-                    url = f"http://127.0.0.1:{port}/run/generate"
-                    print(f"Calling API with sentence: <{sentence}>")
-                    response = requests.post(url, json={
-                        "data": [
-                            f"{sentence}", #prompt
-                            tort_conf['delimiter'], #delimter
-                            tort_conf['emotion'], #emotion
-                            tort_conf['custom_emotion'], #custom emotion
-                            tort_conf['voice_name'], #voice name
-                            {"name": tort_conf['audio_file'],"data":"data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA="},
-                            tort_conf['voice_chunks'], #voice chunks
-                            tort_conf['candidates'], #candidates
-                            tort_conf['seed'], #seed
-                            tort_conf['samples'], #samples
-                            tort_conf['iterations'], #iterations
-                            tort_conf['temperature'], #temp
-                            tort_conf['diffusion_sampler'],
-                            tort_conf['pause_size'],
-                            tort_conf['cvvp_weight'],
-                            tort_conf['top_p'],
-                            tort_conf['diffusion_temp'],
-                            tort_conf['length_penalty'],
-                            tort_conf['repetition_penalty'],
-                            tort_conf['conditioning_free_k'],
-                            tort_conf['experimental_flags'],
-                            False,
-                            False,
-                        ]
-                    }).json()
-
-                    audio_path = response['data'][2]['choices'][0]
-                    print(f"API response received with audio path: {audio_path}")
-
-                    if is_queue:
-                        slot = self.free_slots.get()
-                        self.audio_queue.put((audio_path, slot))
-                    else:
-                        return audio_path
-
-                except requests.ConnectionError:
-                    print(f"Failed to connect to port {port}, trying next port")
-                except requests.Timeout:
-                    print(f"Request timed out on port {port}, trying next port")
-                except requests.RequestException as e:  # Catch any other requests exceptions
-                    print(f"An error occurred on port {port}: {e}")
-                except Exception as e:  # Catch non-requests exceptions
-                    print(f"An unexpected error occurred: {e}")
-            
-            print(f"Attempt {attempt + 1} failed, retrying...")  # Log the retry attempt
-            import time
-            # time.sleep(1)  # Optional: add a delay between retries
-        
-        print(f"Failed to connect after {max_retries} attempts")
-        return None
-
-            
-
-    def play_audio_from_queue(self):
-        while True:
-            audio_file, slot = self.audio_queue.get()
-            if audio_file == "stop":
-                self.audio_queue.task_done()
-                break
-            data, sample_rate = sf.read(audio_file)
-            sd.play(data, sample_rate)
-            sd.wait()
-            os.remove(audio_file)
-            self.audio_queue.task_done()
-            self.free_slots.put(slot)
-
-    # Usually only ran if using this as a standalone script, most likely you won't be
-    def run(self, sentences):
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            for i in range(1, 6):
-                self.free_slots.put(i)
-
-            audio_thread = threading.Thread(target=self.play_audio_from_queue)
-            audio_thread.start()
-
-            # Wait for each API call to complete before starting the next one
-            for sentence in sentences:
-                future = executor.submit(self.call_api, sentence)
-                concurrent.futures.wait([future])
-
-            self.audio_queue.join()
-            self.audio_queue.put(("stop", None))
-
-def load_config():
+def load_config(tort_yaml_path):
     current_dir = os.path.dirname(os.path.abspath(__file__))
     yaml_file = os.path.join(current_dir, "tort.yaml")
 
@@ -190,8 +117,15 @@ def read_paragraph_from_file(file_path):
     return paragraph
 
 if __name__ == "__main__":
-    file_path = "story.txt"
-    paragraph = read_paragraph_from_file(file_path)
-    filtered_paragraph = filter_paragraph(paragraph)
-    player = Tortoise_API()
-    player.run(filtered_paragraph)
+    # LEGACY STUFF
+    # file_path = "story.txt"
+    # paragraph = read_paragraph_from_file(file_path)
+    # filtered_paragraph = filter_paragraph(paragraph)
+    # player = Tortoise_API()
+    # player.run(filtered_paragraph)
+    sentence = "[en]This is a test sentence and I want to generate audio for it"
+    result = call_api(sentence=sentence)
+    audio_file = result[2]["choices"][0][0]
+    data, sample_rate = sf.read(audio_file)
+    sd.play(data, sample_rate)
+    sd.wait()
