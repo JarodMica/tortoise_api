@@ -9,19 +9,15 @@ import yaml
 import re
 from gradio_client import Client, file
 
-def call_api(sentence, line_delimiter="\n", emotion="None", custom_emotion="", voice="mel", microphone_source=None, 
-             voice_chunks=0, candidates=1, seed=0, samples=1, iterations=32, temperature=0.8, diffusion_samplers="P", 
-             pause_size=8, cvvp_weight=0, top_p=0.8, diffusion_temperature=1, length_penalty=6, repetition_penalty=6, 
-             conditioning_free_k=2, experimental_flags=["Half Precision", "Conditioning-Free"], 
-             use_original_latents_ar=True, use_original_latents_diffusion=True):
+def call_api(sentence, **kwargs):
     '''
-    Makes a request to the Tortoise TTS GUI.  Relies on tort.yaml, so make sure it's set-up
+    Makes a request to the Tortoise TTS GUI. Relies on tort.yaml, so make sure it's set-up
 
     Args:
         Various arguments for TTS conversion
-    
+
     Returns:
-        audio_path (str) : Path of the audio to be played
+        audio_path (str): Path of the audio to be played
     '''
     start_port = 7860
     url = f"http://localhost:{start_port}/"
@@ -31,35 +27,37 @@ def call_api(sentence, line_delimiter="\n", emotion="None", custom_emotion="", v
             client = Client(url)
             result = client.predict(
                 sentence,  # str in 'Input Prompt' Textbox component
-                line_delimiter,  # str in 'Line Delimiter' Textbox component
-                emotion,  # Literal['Happy', 'Sad', 'Angry', 'Disgusted', 'Arrogant', 'Custom', 'None'] in 'Emotion' Radio component
-                custom_emotion,  # str in 'Custom Emotion' Textbox component
-                voice,  # Literal['el', 'emi', 'emilia2', 'english_test', 'jp_test', 'me', 'mel', 'multilingual_dataset', 'penguinz0', 'penguinz0_2', 'spanish', 'subaru', 'test', 'test_run', 'vi', 'random', 'microphone'] in 'Voice' Dropdown component
-                microphone_source,  # filepath in 'Microphone Source' Audio component
-                voice_chunks,  # float in 'Voice Chunks' Number component
-                candidates,  # float (numeric value between 1 and 6) in 'Candidates' Slider component
-                seed,  # float in 'Seed' Number component
-                samples,  # float (numeric value between 1 and 512) in 'Samples' Slider component
-                iterations,  # float (numeric value between 0 and 512) in 'Iterations' Slider component
-                temperature,  # float (numeric value between 0 and 1) in 'Temperature' Slider component
-                diffusion_samplers,  # Literal['P', 'DDIM'] in 'Diffusion Samplers' Radio component
-                pause_size,  # float (numeric value between 1 and 32) in 'Pause Size' Slider component
-                cvvp_weight,  # float (numeric value between 0 and 1) in 'CVVP Weight' Slider component
-                top_p,  # float (numeric value between 0 and 1) in 'Top P' Slider component
-                diffusion_temperature,  # float (numeric value between 0 and 1) in 'Diffusion Temperature' Slider component
-                length_penalty,  # float (numeric value between 0 and 8) in 'Length Penalty' Slider component
-                repetition_penalty,  # float (numeric value between 0 and 8) in 'Repetition Penalty' Slider component
-                conditioning_free_k,  # float (numeric value between 0 and 4) in 'Conditioning-Free K' Slider component
-                experimental_flags,  # List[Literal['Half Precision', 'Conditioning-Free']] in 'Experimental Flags' Checkboxgroup component
-                use_original_latents_ar,  # bool in 'Use Original Latents Method (AR)' Checkbox component
-                use_original_latents_diffusion,  # bool in 'Use Original Latents Method (Diffusion)' Checkbox component
+                kwargs.get("line_delimiter", "\n"),  # str in 'Line Delimiter' Textbox component
+                kwargs.get("emotion", "None"),  # Literal['Happy', 'Sad', 'Angry', 'Disgusted', 'Arrogant', 'Custom', 'None'] in 'Emotion' Radio component
+                kwargs.get("custom_emotion", ""),  # str in 'Custom Emotion' Textbox component
+                kwargs.get("voice", "mel"),  # Literal['el', 'emi', 'emilia2', 'english_test', 'jp_test', 'me', 'mel', 'multilingual_dataset', 'penguinz0', 'penguinz0_2', 'spanish', 'subaru', 'test', 'test_run', 'vi', 'random', 'microphone'] in 'Voice' Dropdown component
+                kwargs.get("microphone_source", None),  # filepath in 'Microphone Source' Audio component
+                kwargs.get("voice_chunks", 0),  # float in 'Voice Chunks' Number component
+                kwargs.get("candidates", 1),  # float (numeric value between 1 and 6) in 'Candidates' Slider component
+                kwargs.get("seed", 0),  # float in 'Seed' Number component
+                kwargs.get("samples", 1),  # float (numeric value between 1 and 512) in 'Samples' Slider component
+                kwargs.get("iterations", 32),  # float (numeric value between 0 and 512) in 'Iterations' Slider component
+                kwargs.get("temperature", 0.8),  # float (numeric value between 0 and 1) in 'Temperature' Slider component
+                kwargs.get("diffusion_samplers", "P"),  # Literal['P', 'DDIM'] in 'Diffusion Samplers' Radio component
+                kwargs.get("pause_size", 8),  # float (numeric value between 1 and 32) in 'Pause Size' Slider component
+                kwargs.get("cvvp_weight", 0),  # float (numeric value between 0 and 1) in 'CVVP Weight' Slider component
+                kwargs.get("top_p", 0.8),  # float (numeric value between 0 and 1) in 'Top P' Slider component
+                kwargs.get("diffusion_temperature", 1),  # float (numeric value between 0 and 1) in 'Diffusion Temperature' Slider component
+                kwargs.get("length_penalty", 6),  # float (numeric value between 0 and 8) in 'Length Penalty' Slider component
+                kwargs.get("repetition_penalty", 6),  # float (numeric value between 0 and 8) in 'Repetition Penalty' Slider component
+                kwargs.get("conditioning_free_k", 2),  # float (numeric value between 0 and 4) in 'Conditioning-Free K' Slider component
+                kwargs.get("experimental_flags", ["Half Precision", "Conditioning-Free"]),  # List[Literal['Half Precision', 'Conditioning-Free']] in 'Experimental Flags' Checkboxgroup component
+                kwargs.get("use_original_latents_ar", True),  # bool in 'Use Original Latents Method (AR)' Checkbox component
+                kwargs.get("use_original_latents_diffusion", True),  # bool in 'Use Original Latents Method (Diffusion)' Checkbox component
                 api_name="/generate"
             )
-
-            return result[0]
-        except:
-            start_port += 1
+            return result['audio_path']
+        except Exception as e:
             tries += 1
+            print(f"Error: {e}, retrying... ({tries}/3)")
+
+    raise Exception("API call failed after 3 attempts")
+
 
 def load_config(tort_yaml_path):
     current_dir = os.path.dirname(os.path.abspath(__file__))
